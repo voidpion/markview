@@ -113,6 +113,10 @@ export default function MarkViewClient({ lang = 'en' }) {
   const fileInputRef = useRef(null)
   const syncBlockRef = useRef(false)
   const divDragActiveRef = useRef(false)
+  const undoStack = useRef(null)   // null = uninitialized
+  const undoIdx   = useRef(0)
+  const undoTimer = useRef(null)
+  const skipHistory = useRef(false)
 
   // Derived preview HTML
   const previewHtml = useMemo(() => {
@@ -124,6 +128,24 @@ export default function MarkViewClient({ lang = 'en' }) {
   useEffect(() => {
     const words = text.trim() ? text.trim().split(/\s+/).length : 0
     setStats({ words, chars: text.length, lines: text.split('\n').length })
+  }, [text])
+
+  // ── Undo history ─────────────────────────────────────────────
+  useEffect(() => {
+    if (skipHistory.current) { skipHistory.current = false; return }
+    if (undoStack.current === null) {
+      undoStack.current = [text]; undoIdx.current = 0; return
+    }
+    clearTimeout(undoTimer.current)
+    undoTimer.current = setTimeout(() => {
+      const top = undoStack.current[undoIdx.current]
+      if (top === text) return
+      const next = undoStack.current.slice(0, undoIdx.current + 1)
+      next.push(text)
+      if (next.length > 200) next.shift()
+      undoStack.current = next
+      undoIdx.current = next.length - 1
+    }, 400)
   }, [text])
 
   // ── Core op helper ──────────────────────────────────────────
@@ -257,6 +279,45 @@ export default function MarkViewClient({ lang = 'en' }) {
           if (e.shiftKey) insertCodeBlock()
           else wrapSelection('`', '`', 'code')
           break
+        case 'z':
+          e.preventDefault()
+          if (e.shiftKey) {
+            // Ctrl+Shift+Z — redo
+            clearTimeout(undoTimer.current)
+            if (undoIdx.current < (undoStack.current?.length ?? 1) - 1) {
+              skipHistory.current = true
+              undoIdx.current++
+              setText(undoStack.current[undoIdx.current])
+            }
+          } else {
+            // Ctrl+Z — undo: flush pending snapshot first
+            clearTimeout(undoTimer.current)
+            const cur = editorRef.current?.value ?? ''
+            const stack = undoStack.current ?? [cur]
+            if (stack[undoIdx.current] !== cur) {
+              const next = stack.slice(0, undoIdx.current + 1)
+              next.push(cur)
+              if (next.length > 200) next.shift()
+              undoStack.current = next
+              undoIdx.current = next.length - 1
+            }
+            if (undoIdx.current > 0) {
+              skipHistory.current = true
+              undoIdx.current--
+              setText(undoStack.current[undoIdx.current])
+            }
+          }
+          break
+        case 'y':
+          e.preventDefault()
+          // Ctrl+Y — redo
+          clearTimeout(undoTimer.current)
+          if (undoIdx.current < (undoStack.current?.length ?? 1) - 1) {
+            skipHistory.current = true
+            undoIdx.current++
+            setText(undoStack.current[undoIdx.current])
+          }
+          break
       }
     }
   }, [applyOp, wrapSelection, insertLink, insertCodeBlock])
@@ -320,6 +381,10 @@ export default function MarkViewClient({ lang = 'en' }) {
     reader.onload = (evt) => {
       const content = evt.target?.result
       if (typeof content === 'string') {
+        clearTimeout(undoTimer.current)
+        undoStack.current = [content]
+        undoIdx.current = 0
+        skipHistory.current = true
         setText(content)
         setFilename(file.name)
         requestAnimationFrame(() => editorRef.current?.scrollTo(0, 0))
