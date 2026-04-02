@@ -23,7 +23,7 @@
   --c-preview-even-row: rgba(0, 0, 0, 0.025);
   /* fonts */
   --font-ui:         'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei UI', system-ui, sans-serif;
-  --font-editor:     'JetBrains Mono', 'Cascadia Code', 'Menlo', ui-monospace, monospace;
+  --font-editor:     'JetBrains Mono', 'Cascadia Code', 'Menlo', ui-monospace, monospace, 'PingFang SC', 'Microsoft YaHei UI', sans-serif;
   /* Preview fonts are controlled by .preview-font-* classes */
   --font-preview-sans:   'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-preview-serif:  'Noto Serif SC', 'STSong', 'Songti SC', Georgia, serif;
