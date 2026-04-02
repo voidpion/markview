@@ -41,6 +41,7 @@ export const translations = {
     fontSans: 'Noto Sans SC (Gothic)',
     fontSerif: 'Noto Serif SC (Sung)',
     fontWenkai: 'LXGW WenKai (Kai)',
+    overwriteConfirm: 'Current content will be replaced. Continue?',
   },
 
   zh: {
@@ -85,6 +86,7 @@ export const translations = {
     fontSans: '思源黑体',
     fontSerif: '思源宋体',
     fontWenkai: '霞鹜文楷',
+    overwriteConfirm: '当前内容将被覆盖，确认继续？',
   },
 }
 

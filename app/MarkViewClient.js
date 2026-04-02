@@ -61,11 +61,20 @@ marked.use({ gfm: true, breaks: false })
 export default function MarkViewClient({ lang = 'en' }) {
   const t = getT(lang)
 
-  const [text, setText] = useState(() => defaultContent[lang] ?? defaultContent.en)
+  const [text, setText] = useState(() => {
+    try {
+      const saved = typeof window !== 'undefined' && localStorage.getItem('markview-content')
+      return saved ?? (defaultContent[lang] ?? defaultContent.en)
+    } catch { return defaultContent[lang] ?? defaultContent.en }
+  })
   const [splitPos, setSplitPos] = useState(50)
   const [copyState, setCopyState] = useState('idle')
   const [isDragOver, setIsDragOver] = useState(false)
-  const [filename, setFilename] = useState('untitled.md')
+  const [filename, setFilename] = useState(() => {
+    try {
+      return (typeof window !== 'undefined' && localStorage.getItem('markview-filename')) || 'untitled.md'
+    } catch { return 'untitled.md' }
+  })
   const [scrollSync, setScrollSync] = useState(true)
   const [cursor, setCursor] = useState({ line: 1, col: 1 })
   const [stats, setStats] = useState({ words: 0, chars: 0, lines: 1 })
@@ -129,6 +138,19 @@ export default function MarkViewClient({ lang = 'en' }) {
     const words = text.trim() ? text.trim().split(/\s+/).length : 0
     setStats({ words, chars: text.length, lines: text.split('\n').length })
   }, [text])
+
+  // ── Persist content ──────────────────────────────────────────
+  const persistTimer = useRef(null)
+  useEffect(() => {
+    clearTimeout(persistTimer.current)
+    persistTimer.current = setTimeout(() => {
+      try { localStorage.setItem('markview-content', text) } catch { /* ignore */ }
+    }, 500)
+  }, [text])
+
+  useEffect(() => {
+    try { localStorage.setItem('markview-filename', filename) } catch { /* ignore */ }
+  }, [filename])
 
   // ── Undo history ─────────────────────────────────────────────
   useEffect(() => {
@@ -375,16 +397,31 @@ export default function MarkViewClient({ lang = 'en' }) {
   }, [])
 
   // ── File handling ───────────────────────────────────────────
-  const loadFile = useCallback((file, inputEl) => {
+  const confirmOverwrite = useCallback((t) => {
+    const cur = editorRef.current?.value ?? ''
+    if (!cur) return true
+    return window.confirm(t.overwriteConfirm)
+  }, [])
+
+  const loadFile = useCallback((file, inputEl, t) => {
     if (!file) return
+    if (!confirmOverwrite(t)) {
+      if (inputEl) inputEl.value = ''
+      return
+    }
     const reader = new FileReader()
     reader.onload = (evt) => {
       const content = evt.target?.result
       if (typeof content === 'string') {
         clearTimeout(undoTimer.current)
+        clearTimeout(persistTimer.current)
         undoStack.current = [content]
         undoIdx.current = 0
         skipHistory.current = true
+        try {
+          localStorage.setItem('markview-content', content)
+          localStorage.setItem('markview-filename', file.name)
+        } catch { /* ignore */ }
         setText(content)
         setFilename(file.name)
         requestAnimationFrame(() => editorRef.current?.scrollTo(0, 0))
@@ -396,13 +433,13 @@ export default function MarkViewClient({ lang = 'en' }) {
       if (inputEl) inputEl.value = ''
     }
     reader.readAsText(file, 'UTF-8')
-  }, [])
+  }, [confirmOverwrite])
 
   const handleDrop = useCallback((e) => {
     e.preventDefault()
     setIsDragOver(false)
-    loadFile(e.dataTransfer.files?.[0])
-  }, [loadFile])
+    loadFile(e.dataTransfer.files?.[0], null, t)
+  }, [loadFile, t])
 
   // ── Clipboard & download ────────────────────────────────────
   const handleCopy = useCallback(async () => {
@@ -555,7 +592,7 @@ export default function MarkViewClient({ lang = 'en' }) {
             type="file"
             accept=".md,.mdx,.markdown,.txt"
             style={{ display: 'none' }}
-            onChange={(e) => loadFile(e.target.files?.[0], e.target)}
+            onChange={(e) => loadFile(e.target.files?.[0], e.target, t)}
           />
         </div>
       </header>
