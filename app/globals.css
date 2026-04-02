@@ -693,7 +693,8 @@ html, body {
   /* Show only the preview */
   html, body { overflow: visible !important; height: auto !important; background: #fff !important; }
   .app        { height: auto !important; overflow: visible !important; animation: none !important; }
-  .header, .toolbar, .editor-pane, .divider, .statusbar { display: none !important; }
+  .header, .toolbar, .editor-pane, .divider, .statusbar,
+  .preview-pane-header { display: none !important; }
   .main       { display: block !important; overflow: visible !important; }
   .preview-pane  { display: block !important; width: 100% !important; }
   .preview-scroll { overflow: visible !important; height: auto !important; max-height: none !important; }
