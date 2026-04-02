@@ -120,6 +120,7 @@ export default function MarkViewClient({ lang = 'en' }) {
   const previewRef = useRef(null)
   const containerRef = useRef(null)
   const fileInputRef = useRef(null)
+  const filenameInputRef = useRef(null)
   const syncBlockRef = useRef(false)
   const divDragActiveRef = useRef(false)
   const undoStack = useRef(null)   // null = uninitialized
@@ -138,6 +139,41 @@ export default function MarkViewClient({ lang = 'en' }) {
     const words = text.trim() ? text.trim().split(/\s+/).length : 0
     setStats({ words, chars: text.length, lines: text.split('\n').length })
   }, [text])
+
+  // ── Filename auto-scroll ─────────────────────────────────────
+  useEffect(() => {
+    const el = filenameInputRef.current
+    if (!el) return
+    let rafId = null
+    let pos = 0
+    let dir = 1
+    let pause = 80
+
+    const tick = () => {
+      if (document.activeElement === el) return
+      const max = el.scrollWidth - el.clientWidth
+      if (max <= 0) { el.scrollLeft = 0; return }
+      if (pause > 0) { pause--; rafId = requestAnimationFrame(tick); return }
+      pos += dir * 0.7
+      if (pos >= max) { pos = max; dir = -1; pause = 80 }
+      if (pos <= 0)   { pos = 0;   dir =  1; pause = 80 }
+      el.scrollLeft = pos
+      rafId = requestAnimationFrame(tick)
+    }
+
+    const onFocus = () => { cancelAnimationFrame(rafId); el.scrollLeft = 0 }
+    const onBlur  = () => { pos = 0; dir = 1; pause = 80; rafId = requestAnimationFrame(tick) }
+
+    el.addEventListener('focus', onFocus)
+    el.addEventListener('blur',  onBlur)
+    rafId = requestAnimationFrame(tick)
+
+    return () => {
+      cancelAnimationFrame(rafId)
+      el.removeEventListener('focus', onFocus)
+      el.removeEventListener('blur',  onBlur)
+    }
+  }, [filename])
 
   // ── Persist content ──────────────────────────────────────────
   const persistTimer = useRef(null)
@@ -530,6 +566,7 @@ export default function MarkViewClient({ lang = 'en' }) {
 
         <div className="header-filename">
           <input
+            ref={filenameInputRef}
             id="filename-input"
             name="filename"
             type="text"
