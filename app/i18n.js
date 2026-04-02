@@ -42,6 +42,9 @@ export const translations = {
     fontSerif: 'Noto Serif SC (Sung)',
     fontWenkai: 'LXGW WenKai (Kai)',
     overwriteConfirm: 'Current content will be replaced. Continue?',
+    focusEditor: 'Focus editor',
+    focusPreview: 'Focus preview',
+    exitFocus: 'Exit focus',
   },
 
   zh: {
@@ -87,6 +90,9 @@ export const translations = {
     fontSerif: '思源宋体',
     fontWenkai: '霞鹜文楷',
     overwriteConfirm: '当前内容将被覆盖，确认继续？',
+    focusEditor: '编辑区全屏',
+    focusPreview: '预览区全屏',
+    exitFocus: '退出全屏',
   },
 }
 

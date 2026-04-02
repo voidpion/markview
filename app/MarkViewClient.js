@@ -21,6 +21,7 @@ import {
   Quote, FileCode, Minus, List, ListOrdered, ListChecks,
   Link2, Image as LucideImage, Table,
   Upload, Copy, Check, Download, ArrowUpDown, Sun, Moon, FileDown,
+  Maximize2, Minimize2,
 } from 'lucide-react'
 import { getT, defaultContent } from './i18n'
 
@@ -81,6 +82,7 @@ export default function MarkViewClient({ lang = 'en' }) {
   const [isDivDragging, setIsDivDragging] = useState(false)
   const [theme, setTheme] = useState('light')
   const [fontTheme, setFontTheme] = useState('sans')
+  const [focusPane, setFocusPane] = useState(null) // null | 'editor' | 'preview'
 
   // Sync theme + fontTheme from localStorage on mount
   useEffect(() => {
@@ -670,10 +672,24 @@ export default function MarkViewClient({ lang = 'en' }) {
       <main className="main" ref={containerRef}>
 
         {/* Editor */}
-        <div className="editor-pane" style={{ width: `${splitPos}%` }}>
+        <div className="editor-pane" style={
+          focusPane === 'preview' ? { display: 'none' } :
+          focusPane === 'editor'  ? { width: '100%' } :
+          { width: `${splitPos}%` }
+        }>
           <div className="editor-pane-header">
             <span>{t.editor}</span>
-            <span>{t.markdown}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span>{t.markdown}</span>
+              <button
+                className="btn"
+                style={{ width: 26, height: 26 }}
+                onClick={() => setFocusPane(f => f === 'editor' ? null : 'editor')}
+                data-tip={focusPane === 'editor' ? t.exitFocus : t.focusEditor}
+              >
+                {focusPane === 'editor' ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+              </button>
+            </div>
           </div>
           <div
             style={{ flex: 1, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
@@ -708,6 +724,7 @@ export default function MarkViewClient({ lang = 'en' }) {
         <div
           className={`divider${isDivDragging ? ' dragging' : ''}`}
           onPointerDown={handleDividerDown}
+          style={focusPane ? { display: 'none' } : undefined}
         >
           <div className="divider-dots">
             {Array.from({ length: 6 }).map((_, i) => <span key={i} />)}
@@ -715,9 +732,19 @@ export default function MarkViewClient({ lang = 'en' }) {
         </div>
 
         {/* Preview */}
-        <div className="preview-pane">
+        <div className="preview-pane" style={focusPane === 'editor' ? { display: 'none' } : undefined}>
           <div className="preview-pane-header">
-            <span>{t.preview}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <button
+                className="btn"
+                style={{ width: 26, height: 26 }}
+                onClick={() => setFocusPane(f => f === 'preview' ? null : 'preview')}
+                data-tip={focusPane === 'preview' ? t.exitFocus : t.focusPreview}
+              >
+                {focusPane === 'preview' ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+              </button>
+              <span>{t.preview}</span>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div className="font-switcher">
                 {[['sans','黑',t.fontSans],['serif','宋',t.fontSerif],['wenkai','楷',t.fontWenkai]].map(([key, label, tip]) => (
