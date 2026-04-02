@@ -23,7 +23,7 @@
   --c-preview-even-row: rgba(0, 0, 0, 0.025);
   /* fonts */
   --font-ui:         'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei UI', system-ui, sans-serif;
-  --font-editor:     'JetBrains Mono', 'Cascadia Code', 'Menlo', ui-monospace, monospace, 'PingFang SC', 'Microsoft YaHei UI', sans-serif;
+  --font-editor:     'Menlo', 'Monaco', 'Courier New', ui-monospace, monospace, 'PingFang SC', 'Heiti SC', 'Microsoft YaHei', sans-serif;
   /* Preview fonts are controlled by .preview-font-* classes */
   --font-preview-sans:   'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   --font-preview-serif:  'Noto Serif SC', 'STSong', 'Songti SC', Georgia, serif;
@@ -700,17 +700,16 @@ html, body {
   .preview-scroll { overflow: visible !important; height: auto !important; max-height: none !important; }
 
   /* Code blocks: preserve colors, wrap long lines, no overflow clip */
-  .preview-content pre {
-    overflow: visible !important;
-    white-space: pre-wrap !important;
-    word-break: break-word !important;
-    print-color-adjust: exact !important;
-    -webkit-print-color-adjust: exact !important;
-  }
+  .preview-content pre,
   .preview-content pre code,
   .preview-content :not(pre) > code {
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
+  }
+  .preview-content pre {
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
   }
   .hljs, [class*="hljs-"] {
     print-color-adjust: exact !important;
