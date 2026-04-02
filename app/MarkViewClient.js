@@ -50,8 +50,8 @@ marked.use(
   markedHighlight({
     langPrefix: 'hljs language-',
     highlight(code, lang) {
-      const language = hljs.getLanguage(lang) ? lang : 'plaintext'
-      return hljs.highlight(code, { language }).value
+      if (!lang || !hljs.getLanguage(lang)) return undefined
+      return hljs.highlight(code, { language: lang }).value
     },
   })
 )
