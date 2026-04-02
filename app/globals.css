@@ -669,3 +669,55 @@ html, body {
 }
 
 .app { animation: fadeIn 0.25s ease; }
+
+/* ── Print / Export PDF ──────────────────────────────────────── */
+@media print {
+  /* Force light-mode tokens */
+  :root, [data-theme="dark"] {
+    --c-base:             #fff;
+    --c-surface:          #fff;
+    --c-elevated:         #f0f0f6;
+    --c-border:           #d8d8e4;
+    --c-border-faint:     #e8e8f2;
+    --c-text:             #18181b;
+    --c-text-muted:       #71717a;
+    --c-code-bg:          #f3f3f8;
+    --c-code-border:      #dcdce8;
+    --c-preview-heading:  #111116;
+    --c-preview-strong:   #111116;
+    --c-preview-code:     #c2410c;
+    --c-preview-pre-fg:   #24292e;
+    --c-preview-even-row: rgba(0,0,0,0.025);
+  }
+
+  /* Show only the preview */
+  html, body { overflow: visible !important; height: auto !important; background: #fff !important; }
+  .app        { height: auto !important; overflow: visible !important; animation: none !important; }
+  .header, .toolbar, .editor-pane, .divider, .statusbar { display: none !important; }
+  .main       { display: block !important; overflow: visible !important; }
+  .preview-pane  { display: block !important; width: 100% !important; }
+  .preview-scroll { overflow: visible !important; height: auto !important; max-height: none !important; }
+
+  /* Code blocks: preserve colors, wrap long lines, no overflow clip */
+  .preview-content pre {
+    overflow: visible !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  .preview-content pre code,
+  .preview-content :not(pre) > code {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+  .hljs, [class*="hljs-"] {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+
+  /* Tables & blockquotes */
+  .preview-content th,
+  .preview-content td { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
+  .preview-content blockquote { print-color-adjust: exact !important; -webkit-print-color-adjust: exact !important; }
+}

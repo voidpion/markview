@@ -489,63 +489,10 @@ export default function MarkViewClient({ lang = 'en' }) {
   }, [text])
 
   const handleExportPdf = useCallback(() => {
-    const el = document.querySelector('.preview-content')
-    if (!el) return
-
-    // Collect all styles from the current page (Next.js injected + Google Fonts)
-    const linkTags = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
-      .map(l => `<link rel="stylesheet" href="${l.href}">`)
-      .join('\n')
-    const styleTags = Array.from(document.querySelectorAll('style'))
-      .map(s => `<style>${s.textContent}</style>`)
-      .join('\n')
-
-    const win = window.open('', '_blank')
-    win.document.write(`<!DOCTYPE html>
-<html lang="${document.documentElement.lang}">
-<head>
-  <meta charset="utf-8">
-  <title>${filename}</title>
-  ${linkTags}
-  ${styleTags}
-  <style>
-    html, body {
-      background: #fff !important;
-      margin: 0; padding: 0;
-      overflow: auto; height: auto;
-      color: #18181b !important;
-    }
-    /* Override dark-mode tokens for print */
-    :root, [data-theme="dark"] {
-      --c-base: #fff;
-      --c-surface: #fff;
-      --c-elevated: #f0f0f6;
-      --c-border: #d8d8e4;
-      --c-border-faint: #e8e8f2;
-      --c-text: #18181b;
-      --c-text-muted: #71717a;
-      --c-code-bg: #f3f3f8;
-      --c-code-border: #dcdce8;
-      --c-preview-heading: #111116;
-      --c-preview-strong: #111116;
-      --c-preview-code: #c2410c;
-      --c-preview-pre-fg: #24292e;
-      --c-preview-even-row: rgba(0,0,0,0.025);
-    }
-    .preview-content {
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 40px 60px 60px;
-    }
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    }
-  </style>
-</head>
-<body>${el.outerHTML}</body>
-</html>`)
-    win.document.close()
-    win.addEventListener('load', () => { win.focus(); win.print() })
+    const prev = document.title
+    document.title = filename
+    window.print()
+    document.title = prev
   }, [filename])
 
   const handleDownload = useCallback(() => {
