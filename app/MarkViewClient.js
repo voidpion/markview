@@ -21,7 +21,7 @@ import {
   Quote, FileCode, Minus, List, ListOrdered, ListChecks,
   Link2, Image as LucideImage, Table,
   Upload, Copy, Check, Download, ArrowUpDown, Sun, Moon, FileDown,
-  Maximize2, Minimize2,
+  Maximize2, Minimize2, Info, ChevronDown,
 } from 'lucide-react'
 import { getT, defaultContent } from './i18n'
 
@@ -58,13 +58,62 @@ marked.use(
 )
 marked.use({ gfm: true, breaks: false })
 
+function stripQuotes(value) {
+  return String(value ?? '').trim().replace(/^['"]|['"]$/g, '')
+}
+
+function parseInlineArray(value) {
+  const trimmed = String(value ?? '').trim()
+  if (!trimmed.startsWith('[') || !trimmed.endsWith(']')) return []
+  return trimmed
+    .slice(1, -1)
+    .split(',')
+    .map(item => stripQuotes(item))
+    .filter(Boolean)
+}
+
+function parseFrontMatter(text) {
+  const source = typeof text === 'string' ? text : ''
+  const match = source.match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/)
+  if (!match) return { frontMatter: null, body: source }
+
+  const raw = match[1]
+  const fields = {}
+  const tags = []
+  let activeKey = null
+
+  for (const line of raw.split(/\r?\n/)) {
+    const fieldMatch = line.match(/^([A-Za-z0-9_-]+):\s*(.*)$/)
+    if (fieldMatch) {
+      activeKey = fieldMatch[1]
+      const value = stripQuotes(fieldMatch[2])
+      if (activeKey === 'tags') {
+        tags.push(...parseInlineArray(value))
+      } else if (value) {
+        fields[activeKey] = value
+      }
+      continue
+    }
+
+    const listItemMatch = line.match(/^\s*-\s+(.+)$/)
+    if (activeKey === 'tags' && listItemMatch) {
+      tags.push(stripQuotes(listItemMatch[1]))
+    }
+  }
+
+  return {
+    frontMatter: { raw, fields, tags },
+    body: source.slice(match[0].length),
+  }
+}
+
 // ── Component ─────────────────────────────────────────────────
 export default function MarkViewClient({ lang = 'en' }) {
   const t = getT(lang)
 
   const [text, setText] = useState(() => {
     try {
-      const saved = typeof window !== 'undefined' && localStorage.getItem('markview-content')
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('markview-content') : null
       return saved ?? (defaultContent[lang] ?? defaultContent.en)
     } catch { return defaultContent[lang] ?? defaultContent.en }
   })
@@ -73,7 +122,7 @@ export default function MarkViewClient({ lang = 'en' }) {
   const [isDragOver, setIsDragOver] = useState(false)
   const [filename, setFilename] = useState(() => {
     try {
-      return (typeof window !== 'undefined' && localStorage.getItem('markview-filename')) || 'untitled.md'
+      return (typeof window !== 'undefined' ? localStorage.getItem('markview-filename') : null) || 'untitled.md'
     } catch { return 'untitled.md' }
   })
   const [scrollSync, setScrollSync] = useState(true)
@@ -83,6 +132,7 @@ export default function MarkViewClient({ lang = 'en' }) {
   const [theme, setTheme] = useState('light')
   const [fontTheme, setFontTheme] = useState('sans')
   const [focusPane, setFocusPane] = useState(null) // null | 'editor' | 'preview'
+  const [frontMatterOpen, setFrontMatterOpen] = useState(false)
 
   // Sync theme + fontTheme from localStorage on mount
   useEffect(() => {
@@ -131,10 +181,25 @@ export default function MarkViewClient({ lang = 'en' }) {
   const skipHistory = useRef(false)
 
   // Derived preview HTML
+  const parsedDocument = useMemo(() => parseFrontMatter(text), [text])
+  const frontMatterSummary = useMemo(() => {
+    const meta = parsedDocument.frontMatter
+    if (!meta) return []
+
+    const fields = meta.fields
+    const parts = []
+    if (fields.title) parts.push(fields.title)
+    if (fields.date) parts.push(fields.date)
+    if (meta.tags.length) parts.push(`${meta.tags.length} ${t.tags}`)
+    if (fields.status) parts.push(`status: ${fields.status}`)
+    if (fields.usage) parts.push(fields.usage)
+    return parts
+  }, [parsedDocument.frontMatter, t.tags])
+
   const previewHtml = useMemo(() => {
-    try { return marked.parse(text) }
+    try { return marked.parse(parsedDocument.body) }
     catch (e) { return `<p style="color:#ef4444">Parse error: ${e.message}</p>` }
-  }, [text])
+  }, [parsedDocument.body])
 
   // Stats
   useEffect(() => {
@@ -693,6 +758,17 @@ export default function MarkViewClient({ lang = 'en' }) {
               <span>{t.preview}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {parsedDocument.frontMatter && (
+                <button
+                  className={`btn${frontMatterOpen ? ' active' : ''}`}
+                  style={{ height: 26, padding: '0 8px', gap: 5 }}
+                  onClick={() => setFrontMatterOpen(v => !v)}
+                  data-tip={frontMatterOpen ? t.hideMetadata : t.showMetadata}
+                >
+                  <Info size={13} />
+                  <span>{t.metadata}</span>
+                </button>
+              )}
               <div className="font-switcher">
                 {[['sans','黑',t.fontSans],['serif','宋',t.fontSerif],['wenkai','楷',t.fontWenkai]].map(([key, label, tip]) => (
                   <button
@@ -711,6 +787,31 @@ export default function MarkViewClient({ lang = 'en' }) {
             className="preview-scroll"
             onScroll={handlePreviewScroll}
           >
+            {parsedDocument.frontMatter && (
+              <section className={`frontmatter-panel${frontMatterOpen ? ' open' : ''}`}>
+                <button
+                  className="frontmatter-summary-row"
+                  onClick={() => setFrontMatterOpen(v => !v)}
+                  aria-expanded={frontMatterOpen}
+                >
+                  <span className="frontmatter-label">
+                    <Info size={14} />
+                    {t.metadata}
+                  </span>
+                  <span className="frontmatter-summary-text">
+                    {frontMatterSummary.length ? frontMatterSummary.join(' · ') : t.frontMatter}
+                  </span>
+                  <span className="frontmatter-toggle">
+                    {frontMatterOpen ? t.hideMetadata : t.showMetadata}
+                    <ChevronDown size={14} />
+                  </span>
+                </button>
+
+                {frontMatterOpen && (
+                  <pre className="frontmatter-code"><code>{parsedDocument.frontMatter.raw}</code></pre>
+                )}
+              </section>
+            )}
             <div
               className={`preview-content preview-font-${fontTheme}`}
               dangerouslySetInnerHTML={{ __html: previewHtml }}
